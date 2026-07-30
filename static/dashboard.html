@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Data Watchdog — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--bg:#080c14;--surface:#0d1220;--surface2:#111827;--border:#1a2540;--teal:#00e5b0;--teal-dim:#00e5b022;--red:#ff3f5e;--red-dim:#ff3f5e22;--amber:#ffb830;--amber-dim:#ffb83022;--blue:#4a9eff;--text:#e2eaf8;--muted:#4a6080;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+.wrap{position:relative;z-index:1;padding:20px;max-width:980px;margin:0 auto}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.brand-name{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--teal);letter-spacing:-1px}
+.brand-name span{color:var(--muted)}
+.brand-sub{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.ts-badge{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 10px;border-radius:6px}
+.btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.btn-primary{background:var(--teal);color:#080c14}
+.btn-primary:hover{background:#00ffc4;transform:translateY(-1px);box-shadow:0 4px 20px #00e5b044}
+.btn-primary:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+.banner{border-radius:10px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;font-family:var(--mono);transition:all .5s;position:relative;overflow:hidden}
+.banner::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.03) 50%,transparent 100%);animation:shimmer 3s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.banner.ok{background:linear-gradient(135deg,#0a2318,#061a12);border:1px solid #00e5b044;color:var(--teal)}
+.banner.err{background:linear-gradient(135deg,#20060d,#150410);border:1px solid #ff3f5e44;color:var(--red);animation:pulse-border 2s infinite}
+@keyframes pulse-border{0%,100%{border-color:#ff3f5e33}50%{border-color:#ff3f5eaa}}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-dot.ok{background:var(--teal);box-shadow:0 0 10px var(--teal)}
+.status-dot.err{background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.banner-right{margin-left:auto;font-size:10px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;transition:border-color .4s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;transition:background .4s}
+.card.ok::before{background:linear-gradient(90deg,var(--teal),transparent)}
+.card.err::before{background:linear-gradient(90deg,var(--red),transparent)}
+.card.warn::before{background:linear-gradient(90deg,var(--amber),transparent)}
+.card-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:var(--mono)}
+.card-val{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1;transition:color .4s,transform .3s}
+.card-val.ok{color:var(--teal)}
+.card-val.err{color:var(--red)}
+.card-val.warn{color:var(--amber)}
+.card-val.pop{transform:scale(1.1)}
+.card-sub{font-size:10px;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:16px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
+.panel-badge{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px;background:var(--teal-dim);color:var(--teal)}
+.panel-badge.err{background:var(--red-dim);color:var(--red)}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.alert-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);animation:fadeIn .4s ease}
+.alert-item:last-child{border-bottom:none}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.alert-icon{width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px}
+.alert-icon.err{background:var(--red-dim);color:var(--red)}
+.alert-icon.warn{background:var(--amber-dim);color:var(--amber)}
+.alert-type{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:2px}
+.alert-text{font-size:12px;color:var(--text);line-height:1.5;font-family:var(--mono)}
+.empty-state{text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.empty-icon{font-size:24px;margin-bottom:8px}
+.lineage-source{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px}
+.lineage-source span{color:var(--blue)}
+.lineage-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);color:var(--blue);font-size:11px;font-family:var(--mono);padding:6px 12px;border-radius:8px;margin:3px;transition:all .3s}
+.lineage-badge.at-risk{border-color:var(--red);color:var(--red);background:var(--red-dim);animation:pulse-item 2s infinite}
+@keyframes pulse-item{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px #ff3f5e44}}
+.col-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #1a3d28;color:var(--teal);background:#0d2215;transition:all .3s}
+.footer{text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);padding-top:16px;border-top:1px solid var(--border)}
+.footer a{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="brand">
+      <div class="brand-name"><span>// </span>data-watchdog</div>
+      <div class="brand-sub">data observability · built by maiyarasu</div>
+    </div>
+    <div class="hdr-right">
+      <div class="ts-badge" id="ts">last run: —</div>
+      <button class="btn btn-primary" id="run-btn" onclick="runCheck()">▶ run check</button>
+    </div>
+  </div>
+  <div class="banner ok" id="banner">
+    <div class="status-dot ok" id="dot"></div>
+    <span id="banner-text">Loading status…</span>
+    <span class="banner-right" id="snap-info"></span>
+  </div>
+  <div class="cards">
+    <div class="card ok" id="card-rows"><div class="card-label">total rows</div><div class="card-val ok" id="val-rows">–</div><div class="card-sub">orders.csv</div></div>
+    <div class="card ok" id="card-cols"><div class="card-label">columns</div><div class="card-val ok" id="val-cols">–</div><div class="card-sub">active schema</div></div>
+    <div class="card ok" id="card-snaps"><div class="card-label">snapshots</div><div class="card-val ok" id="val-snaps">–</div><div class="card-sub">in meta.db</div></div>
+    <div class="card ok" id="card-health"><div class="card-label">health score</div><div class="card-val ok" id="val-health">–</div><div class="card-sub" id="sub-health">–</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">row count history</div><div class="panel-badge" id="vol-badge">normal volume</div></div>
+      <canvas id="rowChart" height="110"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">null rate by column</div><div class="panel-badge" id="null-badge">no spikes</div></div>
+      <canvas id="nullChart" height="110"></canvas>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">active alerts</div><div class="panel-badge" id="alert-count-badge">0 alerts</div></div>
+      <div id="alerts-list"><div class="empty-state"><div class="empty-icon">✓</div>No anomalies detected</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">lineage impact</div></div>
+      <div class="lineage-source">source: <span>orders.csv</span> affects →</div>
+      <div id="lineage-list"></div>
+      <div style="margin-top:16px">
+        <div class="panel-title" style="margin-bottom:8px">schema · active columns</div>
+        <div class="col-pills" id="col-pills"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    built with python · pandas · numpy · sqlite · flask &nbsp;|&nbsp;
+    <a href="https://github.com/Maiii66/data-watchdog" target="_blank">github.com/Maiii66/data-watchdog</a>
+  </div>
+</div>
+<script>
+function nullColor(v){return v>20?'#ff3f5e':v>5?'#ffb830':'#00e5b0'}
+
+const rowChart = new Chart(document.getElementById('rowChart'), {
+  type:'line',
+  data:{labels:[],datasets:[{data:[],borderColor:'#00e5b0',backgroundColor:'#00e5b010',tension:.4,pointRadius:2,pointBackgroundColor:'#00e5b0',borderWidth:2,fill:true}]},
+  options:{responsive:true,animation:{duration:700},plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.raw} rows`},backgroundColor:'#0d1220',titleColor:'#4a6080',bodyColor:'#e2eaf8',borderColor:'#1a2540',borderWidth:1}},scales:{x:{ticks:{color:'#4a6080',font:{size:9,family:'IBM Plex Mono'}},grid:{color:'#111827'}},y:{ticks:{color:'#4a6080',font:{size:9,family:'IBM Plex Mono'}},grid:{color:'#1a2540'},beginAtZero:false}}}
+});
+
+const nullChart = new Chart(document.getElementById('nullChart'), {
+  type:'bar',
+  data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4,borderSkipped:false}]},
+  options:{indexAxis:'y',responsive:true,animation:{duration:700},plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.raw}% null`},backgroundColor:'#0d1220',titleColor:'#4a6080',bodyColor:'#e2eaf8',borderColor:'#1a2540',borderWidth:1}},scales:{x:{max:35,ticks:{color:'#4a6080',font:{size:9,family:'IBM Plex Mono'},callback:v=>v+'%'},grid:{color:'#1a2540'}},y:{ticks:{color:'#4a6080',font:{size:9,family:'IBM Plex Mono'}},grid:{display:false}}}}
+});
+
+// maps backend alert level -> CSS class used throughout the dashboard
+function levelClass(level){
+  if(level==='error') return 'err';
+  if(level==='warning') return 'warn';
+  return 'ok';
+}
+
+async function fetchStatus(){
+  try{
+    const res = await fetch('/api/status');
+    const d = await res.json();
+    applyData(d);
+  }catch(e){
+    document.getElementById('banner-text').textContent = 'Could not reach the backend — is app.py running?';
+    document.getElementById('banner').className = 'banner err';
+  }
+}
+
+function applyData(d){
+  const state = d.healthy ? 'healthy' : 'broken';
+
+  // row chart
+  rowChart.data.labels = d.chart_data.map(p => p.ts);
+  rowChart.data.datasets[0].data = d.chart_data.map(p => p.rows);
+  rowChart.data.datasets[0].borderColor = state==='broken' ? '#ff3f5e' : '#00e5b0';
+  rowChart.data.datasets[0].backgroundColor = state==='broken' ? '#ff3f5e0a' : '#00e5b010';
+  rowChart.update();
+
+  // null chart
+  nullChart.data.labels = d.null_chart.map(p => p.col);
+  nullChart.data.datasets[0].data = d.null_chart.map(p => p.pct);
+  nullChart.data.datasets[0].backgroundColor = d.null_chart.map(p => nullColor(p.pct));
+  nullChart.update();
+
+  // banner
+  const banner = document.getElementById('banner'), dot = document.getElementById('dot');
+  if(state==='broken'){
+    banner.className='banner err'; dot.className='status-dot err';
+    document.getElementById('banner-text').textContent = `${d.alerts.length} anomalies detected — immediate attention required on orders.csv`;
+  } else {
+    banner.className='banner ok'; dot.className='status-dot ok';
+    document.getElementById('banner-text').textContent = 'All systems healthy — no anomalies detected in orders.csv';
+  }
+  document.getElementById('snap-info').textContent = `${d.total_snaps} snapshots`;
+
+  // cards
+  function setCard(id,val,cls,sub){
+    const c=document.getElementById('card-'+id), v=document.getElementById('val-'+id);
+    c.className='card '+cls; v.className='card-val '+cls; v.textContent=val;
+    v.classList.add('pop'); setTimeout(()=>v.classList.remove('pop'),300);
+    if(sub!==undefined) document.getElementById('sub-'+id).textContent=sub;
+  }
+  setCard('rows', d.row_count, state==='broken'?'err':'ok');
+  setCard('cols', d.columns.length, state==='broken'?'warn':'ok');
+  setCard('snaps', d.total_snaps, 'ok');
+  setCard('health', d.healthy ? '100%' : '0%', state==='broken'?'err':'ok', state==='broken' ? `${d.alerts.length} active alerts` : 'no alerts');
+
+  // chart badges
+  const volAlert = d.alerts.some(a => a.type==='volume');
+  const nullAlert = d.alerts.some(a => a.type==='nulls');
+  const vb = document.getElementById('vol-badge');
+  vb.textContent = volAlert ? '⚠ anomaly detected' : 'normal volume';
+  vb.className = 'panel-badge' + (volAlert ? ' err' : '');
+  const nb = document.getElementById('null-badge');
+  nb.textContent = nullAlert ? '⚠ spike detected' : 'no spikes';
+  nb.className = 'panel-badge' + (nullAlert ? ' err' : '');
+
+  // alerts list
+  const al = document.getElementById('alerts-list'), ab = document.getElementById('alert-count-badge');
+  if(d.alerts.length===0){
+    al.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div>No anomalies detected</div>';
+    ab.textContent='0 alerts'; ab.className='panel-badge';
+  } else {
+    ab.textContent = `${d.alerts.length} alerts`; ab.className='panel-badge err';
+    al.innerHTML = d.alerts.map(a => {
+      const cls = levelClass(a.level);
+      return `<div class="alert-item"><div class="alert-icon ${cls}">${cls==='err'?'✕':'!'}</div><div><div class="alert-type">${a.type}</div><div class="alert-text">${a.text}</div></div></div>`;
+    }).join('');
+  }
+
+  // lineage
+  document.getElementById('lineage-list').innerHTML = d.lineage.map(name =>
+    `<span class="lineage-badge ${state==='broken'?'at-risk':''}"><span>📊</span>${name}</span>`
+  ).join('');
+
+  // schema pills
+  document.getElementById('col-pills').innerHTML = d.columns.map(c =>
+    `<span class="pill">${c}</span>`
+  ).join('');
+
+  document.getElementById('ts').textContent = `last run: ${d.snapshot_ts}`;
+}
+
+async function runCheck(){
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⟳ running...';
+  try{
+    await fetch('/api/run-monitor', {method:'POST'});
+  } finally {
+    await fetchStatus();
+    btn.disabled = false; btn.textContent = '▶ run check';
+  }
+}
+
+fetchStatus();
+</script>
+</body>
+</html>

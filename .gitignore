@@ -1,0 +1,25 @@
+# Generated data & local database
+data/*.csv
+meta.db
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Env / secrets
+.env
+*.env.local
+
+# Editor / OS junk
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log

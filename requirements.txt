@@ -1,0 +1,6 @@
+pandas>=2.2.3
+numpy>=2.0.0
+faker>=25.2.0
+schedule>=1.2.2
+flask>=3.0.3
+pytest>=8.2.0

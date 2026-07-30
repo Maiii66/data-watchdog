@@ -1,0 +1,5 @@
+meta.db
+data/orders.csv
+__pycache__/
+*.pyc
+.env
