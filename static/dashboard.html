@@ -153,7 +153,12 @@ async function fetchStatus(){
   try{
     const res = await fetch('/api/status');
     const d = await res.json();
-    applyData(d);
+    if(d.sources && d.sources.length > 0){
+      applyData(d.sources[0]);
+    } else {
+      document.getElementById('banner-text').textContent = 'No data sources configured';
+      document.getElementById('banner').className = 'banner err';
+    }
   }catch(e){
     document.getElementById('banner-text').textContent = 'Could not reach the backend — is app.py running?';
     document.getElementById('banner').className = 'banner err';

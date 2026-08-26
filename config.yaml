@@ -1,0 +1,47 @@
+# Data Watchdog Configuration
+# All thresholds and settings in one place - no code changes needed to tune.
+
+# ── Data Sources ──────────────────────────────────────────────
+data_sources:
+  - name: orders_pg
+    type: postgres
+    connection_string: postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    table: orders
+    lineage:
+      - Revenue Dashboard
+      - Marketing Report
+      - Fraud Detection Model
+
+  - name: orders_csv
+    type: csv
+    file: data/orders.csv
+    lineage:
+      - Local Backup Check
+
+# ── Storage ───────────────────────────────────────────────────
+storage:
+  database: meta.db
+  history_limit: 30
+
+# ── Check Thresholds ──────────────────────────────────────────
+checks:
+  volume_anomaly:
+    enabled: true
+    z_threshold: 2.0
+    min_history: 5
+
+  schema_change:
+    enabled: true
+
+  null_spike:
+    enabled: true
+    threshold_pct: 20.0
+
+  freshness:
+    enabled: true
+    max_hours: 2
+
+# ── Scheduling ────────────────────────────────────────────────
+schedule:
+  enabled: false
+  interval: 1h
