@@ -12,6 +12,14 @@ data_sources:
       - Marketing Report
       - Fraud Detection Model
 
+  - name: sales_data_pg
+    type: postgres
+    connection_string: postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    table: sales_data
+    lineage:
+      - Sales Analytics
+      - Inventory System
+
   - name: orders_csv
     type: csv
     file: data/orders.csv

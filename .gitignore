@@ -23,3 +23,7 @@ env/
 
 # Logs
 *.log
+
+# Manual test / debug scripts
+check_db.py
+test_sales.py
