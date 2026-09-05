@@ -49,4 +49,4 @@ def generate_data(break_it=False):
 
 
 if __name__ == "__main__":
-    generate_data(break_it=True)
+    generate_data()

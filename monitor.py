@@ -6,6 +6,7 @@ from pathlib import Path
 from alerts import warn
 from checks import CheckRegistry
 from config_loader import load_config, get_checks_config, get_sources_config, get_storage_config
+from notify import notify
 from sources import get_source
 
 config = load_config()
@@ -155,6 +156,8 @@ def run():
 
     total = sum(len(a) for a in all_alerts.values())
     print(f"\n=== All checks done. {total} alert(s) across {len(sources_cfg)} source(s). ===")
+    if total > 0:
+        notify(all_alerts)
     return all_alerts
 
 

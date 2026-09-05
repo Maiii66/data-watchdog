@@ -18,6 +18,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .brand-sub{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;margin-top:2px}
 .hdr-right{display:flex;align-items:center;gap:12px}
 .ts-badge{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 10px;border-radius:6px}
+.src-select{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border);padding:8px 10px;border-radius:8px;cursor:pointer;max-width:240px}
+.src-select:focus{outline:none;border-color:var(--teal)}
 .btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;letter-spacing:.3px}
 .btn-primary{background:var(--teal);color:#080c14}
 .btn-primary:hover{background:#00ffc4;transform:translateY(-1px);box-shadow:0 4px 20px #00e5b044}
@@ -33,6 +35,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .status-dot.err{background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .banner-right{margin-left:auto;font-size:10px;color:var(--muted)}
+.retry-btn{font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer;transition:all .2s}
+.retry-btn:hover{background:var(--red-dim)}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;transition:border-color .4s}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;transition:background .4s}
@@ -82,6 +86,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div class="brand-sub">data observability · built by maiyarasu</div>
     </div>
     <div class="hdr-right">
+      <select class="src-select" id="source-select" onchange="onSourceChange()"><option>loading…</option></select>
       <div class="ts-badge" id="ts">last run: —</div>
       <button class="btn btn-primary" id="run-btn" onclick="runCheck()">▶ run check</button>
     </div>
@@ -90,6 +95,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div class="status-dot ok" id="dot"></div>
     <span id="banner-text">Loading status…</span>
     <span class="banner-right" id="snap-info"></span>
+    <button class="retry-btn" id="retry-btn" onclick="fetchStatus()" style="display:none">↻ retry now</button>
   </div>
   <div class="cards">
     <div class="card ok" id="card-rows"><div class="card-label">total rows</div><div class="card-val ok" id="val-rows">–</div><div class="card-sub">orders.csv</div></div>
@@ -114,7 +120,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
     <div class="panel">
       <div class="panel-hdr"><div class="panel-title">lineage impact</div></div>
-      <div class="lineage-source">source: <span>orders.csv</span> affects →</div>
+      <div class="lineage-source">source: <span id="lineage-src"></span> affects →</div>
       <div id="lineage-list"></div>
       <div style="margin-top:16px">
         <div class="panel-title" style="margin-bottom:8px">schema · active columns</div>
@@ -149,46 +155,114 @@ function levelClass(level){
   return 'ok';
 }
 
+const friendlyNames = {
+  orders_pg: 'the orders database',
+  sales_data_pg: 'the sales data',
+  orders_csv: 'the orders data'
+};
+function friendlyName(name){
+  return friendlyNames[name] || `the ${name} data`;
+}
+
+const state = { selected: null, sources: [] };
+
+let retryTimer = null;
+
+function showUnreachable(msg){
+  document.getElementById('banner-text').textContent = msg;
+  document.getElementById('banner').className = 'banner err';
+  document.getElementById('dot').className = 'status-dot err';
+  document.getElementById('retry-btn').style.display = 'inline-flex';
+}
+
 async function fetchStatus(){
+  clearTimeout(retryTimer);
+  let d;
   try{
     const res = await fetch('/api/status');
-    const d = await res.json();
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    d = await res.json();
+  }catch(e){
+    showUnreachable('Could not reach the backend (' + e.message + ') — retrying…');
+    retryTimer = setTimeout(fetchStatus, 5000);
+    return;
+  }
+  document.getElementById('retry-btn').style.display = 'none';
+  try{
     if(d.sources && d.sources.length > 0){
-      applyData(d.sources[0]);
+      state.sources = d.sources;
+      populateSelector(d.sources);
+      const target = pickSource(d.sources);
+      selectSource(target);
     } else {
       document.getElementById('banner-text').textContent = 'No data sources configured';
       document.getElementById('banner').className = 'banner err';
     }
-  }catch(e){
-    document.getElementById('banner-text').textContent = 'Could not reach the backend — is app.py running?';
+  }catch(err){
+    console.error('dashboard render error:', err);
+    document.getElementById('banner-text').textContent = 'Dashboard render error: ' + err.message + ' — retrying…';
     document.getElementById('banner').className = 'banner err';
+    retryTimer = setTimeout(fetchStatus, 5000);
   }
 }
 
+function populateSelector(sources){
+  const sel = document.getElementById('source-select');
+  sel.innerHTML = sources.map((s,i) =>
+    `<option value="${s.name}" ${s.name===state.selected?'selected':''}>${friendlyName(s.name)} · ${s.name}</option>`
+  ).join('');
+}
+
+function pickSource(sources){
+  // keep the user's selection if it still exists
+  if(state.selected){
+    const keep = sources.find(s => s.name === state.selected);
+    if(keep) return keep;
+  }
+  // otherwise default to the worst (most alerts), tie-break first in list
+  const sorted = [...sources].sort((a,b) => (b.alerts||[]).length - (a.alerts||[]).length);
+  return sorted.length ? sorted[0] : null;
+}
+
+function selectSource(source){
+  if(!source) return;
+  state.selected = source.name;
+  document.getElementById('source-select').value = source.name;
+  applyData(source);
+}
+
+function onSourceChange(){
+  const name = document.getElementById('source-select').value;
+  const source = state.sources.find(s => s.name === name);
+  state.selected = name;
+  if(source) applyData(source);
+}
+
 function applyData(d){
-  const state = d.healthy ? 'healthy' : 'broken';
+  const status = d.healthy ? 'healthy' : 'broken';
 
   // row chart
   rowChart.data.labels = d.chart_data.map(p => p.ts);
   rowChart.data.datasets[0].data = d.chart_data.map(p => p.rows);
-  rowChart.data.datasets[0].borderColor = state==='broken' ? '#ff3f5e' : '#00e5b0';
-  rowChart.data.datasets[0].backgroundColor = state==='broken' ? '#ff3f5e0a' : '#00e5b010';
+  rowChart.data.datasets[0].borderColor = status==='broken' ? '#ff3f5e' : '#00e5b0';
+  rowChart.data.datasets[0].backgroundColor = status==='broken' ? '#ff3f5e0a' : '#00e5b010';
   rowChart.update();
 
   // null chart
   nullChart.data.labels = d.null_chart.map(p => p.col);
   nullChart.data.datasets[0].data = d.null_chart.map(p => p.pct);
   nullChart.data.datasets[0].backgroundColor = d.null_chart.map(p => nullColor(p.pct));
+  nullChart.options.scales.x.max = Math.max(35, ...d.null_chart.map(p => p.pct || 0));
   nullChart.update();
 
   // banner
   const banner = document.getElementById('banner'), dot = document.getElementById('dot');
-  if(state==='broken'){
+  if(status==='broken'){
     banner.className='banner err'; dot.className='status-dot err';
-    document.getElementById('banner-text').textContent = `${d.alerts.length} anomalies detected — immediate attention required on orders.csv`;
+    document.getElementById('banner-text').textContent = `${d.alerts.length} anomalies detected — immediate attention required on ${d.name}`;
   } else {
     banner.className='banner ok'; dot.className='status-dot ok';
-    document.getElementById('banner-text').textContent = 'All systems healthy — no anomalies detected in orders.csv';
+    document.getElementById('banner-text').textContent = `All systems healthy — no anomalies detected in ${d.name}`;
   }
   document.getElementById('snap-info').textContent = `${d.total_snaps} snapshots`;
 
@@ -199,10 +273,10 @@ function applyData(d){
     v.classList.add('pop'); setTimeout(()=>v.classList.remove('pop'),300);
     if(sub!==undefined) document.getElementById('sub-'+id).textContent=sub;
   }
-  setCard('rows', d.row_count, state==='broken'?'err':'ok');
-  setCard('cols', d.columns.length, state==='broken'?'warn':'ok');
+  setCard('rows', d.row_count, status==='broken'?'err':'ok', friendlyName(d.name) + ' · ' + d.name);
+  setCard('cols', d.columns.length, status==='broken'?'warn':'ok');
   setCard('snaps', d.total_snaps, 'ok');
-  setCard('health', d.healthy ? '100%' : '0%', state==='broken'?'err':'ok', state==='broken' ? `${d.alerts.length} active alerts` : 'no alerts');
+  setCard('health', d.healthy ? '100%' : '0%', status==='broken'?'err':'ok', status==='broken' ? `${d.alerts.length} active alerts` : 'no alerts');
 
   // chart badges
   const volAlert = d.alerts.some(a => a.type==='volume');
@@ -228,8 +302,9 @@ function applyData(d){
   }
 
   // lineage
+  document.getElementById('lineage-src').textContent = friendlyName(d.name) + ' · ' + d.name;
   document.getElementById('lineage-list').innerHTML = d.lineage.map(name =>
-    `<span class="lineage-badge ${state==='broken'?'at-risk':''}"><span>📊</span>${name}</span>`
+    `<span class="lineage-badge ${status==='broken'?'at-risk':''}"><span>📊</span>${name}</span>`
   ).join('');
 
   // schema pills

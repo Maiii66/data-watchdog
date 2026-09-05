@@ -51,5 +51,23 @@ checks:
 
 # ── Scheduling ────────────────────────────────────────────────
 schedule:
-  enabled: false
-  interval: 1h
+  enabled: true
+  interval: 30m
+
+# ── Notifications ─────────────────────────────────────────────
+# Enabled channels send alerts when checks fail. Missing/empty
+# credentials in .env simply disable that channel.
+notifications:
+  slack:
+    enabled: true
+    webhook_url: ${SLACK_WEBHOOK_URL}
+  email:
+    enabled: true
+    smtp_host: ${SMTP_HOST}
+    smtp_port: 587
+    use_tls: true
+    username: ${SMTP_USER}
+    password: ${SMTP_PASS}
+    from: ${SMTP_FROM}
+    to:
+      - ${ALERT_EMAIL}
