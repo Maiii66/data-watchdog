@@ -1,0 +1,29 @@
+services:
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: datawatchdog
+      POSTGRES_USER: watchdog
+      POSTGRES_PASSWORD: watchdog
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U watchdog"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      DB_USER: watchdog
+      DB_PASS: watchdog
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_NAME: datawatchdog
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    command: pytest tests/ -v --tb=short

@@ -1,0 +1,8 @@
+pytest>=8.2.0
+pytest-cov>=4.1.0
+flake8>=6.1.0
+black>=23.12.0
+pylint>=3.0.0
+mypy>=1.7.0
+safety>=2.3.5
+isort>=5.13.2
