@@ -208,19 +208,19 @@ async function fetchStatus(){
 
 function populateSelector(sources){
   const sel = document.getElementById('source-select');
-  sel.innerHTML = sources.map((s,i) =>
+  sel.innerHTML = sources.filter(s => s && s.name).map((s,i) =>
     `<option value="${s.name}" ${s.name===state.selected?'selected':''}>${friendlyName(s.name)} · ${s.name}</option>`
   ).join('');
 }
 
 function pickSource(sources){
-  // keep the user's selection if it still exists
+  const valid = sources.filter(s => s && s.name);
+  if(valid.length === 0) return null;
   if(state.selected){
-    const keep = sources.find(s => s.name === state.selected);
+    const keep = valid.find(s => s.name === state.selected);
     if(keep) return keep;
   }
-  // otherwise default to the worst (most alerts), tie-break first in list
-  const sorted = [...sources].sort((a,b) => (b.alerts||[]).length - (a.alerts||[]).length);
+  const sorted = [...valid].sort((a,b) => (b.alerts||[]).length - (a.alerts||[]).length);
   return sorted.length ? sorted[0] : null;
 }
 
@@ -239,48 +239,56 @@ function onSourceChange(){
 }
 
 function applyData(d){
+  if(!d) return;
   const status = d.healthy ? 'healthy' : 'broken';
 
+  const chartData = d.chart_data || [];
+  const nullChartData = d.null_chart || [];
+  const lineage = d.lineage || [];
+  const columns = d.columns || [];
+  const alerts = d.alerts || [];
+
   // row chart
-  rowChart.data.labels = d.chart_data.map(p => p.ts);
-  rowChart.data.datasets[0].data = d.chart_data.map(p => p.rows);
+  rowChart.data.labels = chartData.map(p => p.ts);
+  rowChart.data.datasets[0].data = chartData.map(p => p.rows);
   rowChart.data.datasets[0].borderColor = status==='broken' ? '#ff3f5e' : '#00e5b0';
   rowChart.data.datasets[0].backgroundColor = status==='broken' ? '#ff3f5e0a' : '#00e5b010';
   rowChart.update();
 
   // null chart
-  nullChart.data.labels = d.null_chart.map(p => p.col);
-  nullChart.data.datasets[0].data = d.null_chart.map(p => p.pct);
-  nullChart.data.datasets[0].backgroundColor = d.null_chart.map(p => nullColor(p.pct));
-  nullChart.options.scales.x.max = Math.max(35, ...d.null_chart.map(p => p.pct || 0));
+  nullChart.data.labels = nullChartData.map(p => p.col);
+  nullChart.data.datasets[0].data = nullChartData.map(p => p.pct);
+  nullChart.data.datasets[0].backgroundColor = nullChartData.map(p => nullColor(p.pct));
+  nullChart.options.scales.x.max = Math.max(35, ...nullChartData.map(p => p.pct || 0));
   nullChart.update();
 
   // banner
   const banner = document.getElementById('banner'), dot = document.getElementById('dot');
   if(status==='broken'){
     banner.className='banner err'; dot.className='status-dot err';
-    document.getElementById('banner-text').textContent = `${d.alerts.length} anomalies detected — immediate attention required on ${d.name}`;
+    document.getElementById('banner-text').textContent = `${alerts.length} anomalies detected — immediate attention required on ${d.name}`;
   } else {
     banner.className='banner ok'; dot.className='status-dot ok';
     document.getElementById('banner-text').textContent = `All systems healthy — no anomalies detected in ${d.name}`;
   }
-  document.getElementById('snap-info').textContent = `${d.total_snaps} snapshots`;
+  document.getElementById('snap-info').textContent = `${d.total_snaps || 0} snapshots`;
 
   // cards
   function setCard(id,val,cls,sub){
     const c=document.getElementById('card-'+id), v=document.getElementById('val-'+id);
+    if(!c||!v) return;
     c.className='card '+cls; v.className='card-val '+cls; v.textContent=val;
     v.classList.add('pop'); setTimeout(()=>v.classList.remove('pop'),300);
-    if(sub!==undefined) document.getElementById('sub-'+id).textContent=sub;
+    if(sub!==undefined){ const s=document.getElementById('sub-'+id); if(s) s.textContent=sub; }
   }
-  setCard('rows', d.row_count, status==='broken'?'err':'ok', friendlyName(d.name) + ' · ' + d.name);
-  setCard('cols', d.columns.length, status==='broken'?'warn':'ok');
-  setCard('snaps', d.total_snaps, 'ok');
-  setCard('health', d.healthy ? '100%' : '0%', status==='broken'?'err':'ok', status==='broken' ? `${d.alerts.length} active alerts` : 'no alerts');
+  setCard('rows', d.row_count || 0, status==='broken'?'err':'ok', friendlyName(d.name) + ' · ' + d.name);
+  setCard('cols', columns.length, status==='broken'?'warn':'ok');
+  setCard('snaps', d.total_snaps || 0, 'ok');
+  setCard('health', d.healthy ? '100%' : '0%', status==='broken'?'err':'ok', status==='broken' ? `${alerts.length} active alerts` : 'no alerts');
 
   // chart badges
-  const volAlert = d.alerts.some(a => a.type==='volume');
-  const nullAlert = d.alerts.some(a => a.type==='nulls');
+  const volAlert = alerts.some(a => a.type==='volume');
+  const nullAlert = alerts.some(a => a.type==='nulls');
   const vb = document.getElementById('vol-badge');
   vb.textContent = volAlert ? '⚠ anomaly detected' : 'normal volume';
   vb.className = 'panel-badge' + (volAlert ? ' err' : '');
@@ -290,12 +298,12 @@ function applyData(d){
 
   // alerts list
   const al = document.getElementById('alerts-list'), ab = document.getElementById('alert-count-badge');
-  if(d.alerts.length===0){
+  if(alerts.length===0){
     al.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div>No anomalies detected</div>';
     ab.textContent='0 alerts'; ab.className='panel-badge';
   } else {
-    ab.textContent = `${d.alerts.length} alerts`; ab.className='panel-badge err';
-    al.innerHTML = d.alerts.map(a => {
+    ab.textContent = `${alerts.length} alerts`; ab.className='panel-badge err';
+    al.innerHTML = alerts.map(a => {
       const cls = levelClass(a.level);
       return `<div class="alert-item"><div class="alert-icon ${cls}">${cls==='err'?'✕':'!'}</div><div><div class="alert-type">${a.type}</div><div class="alert-text">${a.text}</div></div></div>`;
     }).join('');
@@ -303,16 +311,16 @@ function applyData(d){
 
   // lineage
   document.getElementById('lineage-src').textContent = friendlyName(d.name) + ' · ' + d.name;
-  document.getElementById('lineage-list').innerHTML = d.lineage.map(name =>
+  document.getElementById('lineage-list').innerHTML = lineage.map(name =>
     `<span class="lineage-badge ${status==='broken'?'at-risk':''}"><span>📊</span>${name}</span>`
   ).join('');
 
   // schema pills
-  document.getElementById('col-pills').innerHTML = d.columns.map(c =>
+  document.getElementById('col-pills').innerHTML = columns.map(c =>
     `<span class="pill">${c}</span>`
   ).join('');
 
-  document.getElementById('ts').textContent = `last run: ${d.snapshot_ts}`;
+  document.getElementById('ts').textContent = `last run: ${d.snapshot_ts || '—'}`;
 }
 
 async function runCheck(){
