@@ -2,10 +2,10 @@
 
 ## What is CI/CD?
 
-CI/CD stands for **Continuous Integration / Continuous Deployment**. It automatically runs tests, checks code quality, builds Docker images, and sends notifications every time you push code to GitHub.
+CI/CD stands for **Continuous Integration / Continuous Deployment**. It automatically runs tests, checks code quality, and builds Docker images every time you push code to GitHub.
 
 **Without CI/CD:** You push code, manually test, hope nothing breaks.
-**With CI/CD:** You push code, everything is tested automatically, you get notified of results.
+**With CI/CD:** You push code, everything is tested automatically.
 
 ---
 
@@ -13,8 +13,8 @@ CI/CD stands for **Continuous Integration / Continuous Deployment**. It automati
 
 ```bash
 git add .github/ requirements-dev.txt tests/ Dockerfile.prod docker-compose.test.yml
-git add QUICK_IMPLEMENTATION_STEPS.md CI-CD_SETUP_GUIDE.md NOTIFICATIONS_PREVIEW.md CI-CD_SUMMARY.md CI-CD_README_FOR_TEAM.md
-git commit -m "Add CI/CD pipeline with automated testing, Slack & Gmail notifications"
+git add CI-CD_SETUP_GUIDE.md
+git commit -m "Add CI/CD pipeline with automated testing"
 git push origin main
 ```
 
@@ -104,7 +104,6 @@ Go to **GitHub** > **Actions** tab to watch the pipeline run.
 5. **Linting** - Checks code style
 6. **Tests** - Runs pytest
 7. **Docker Build** - Builds production image
-8. **Notifications** - Sends Slack + Gmail alerts
 
 ---
 
@@ -112,10 +111,7 @@ Go to **GitHub** > **Actions** tab to watch the pipeline run.
 
 | Problem | Solution |
 |---|---|
-| Slack not notifying | Check webhook URL has no extra spaces |
-| Gmail not sending | Ensure app password is 16 chars without spaces |
 | Tests failing | Click Actions > click run > see error details |
-| Secrets not working | Verify names are EXACTLY as listed (case-sensitive) |
 | Docker build failing | Check Dockerfile.prod syntax |
 
 ---

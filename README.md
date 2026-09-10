@@ -25,7 +25,7 @@ Data pipelines break silently all the time — a column gets dropped, a source g
 ## Setup    
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/data-watchdog.git
+git clone https://github.com/Maiii66/data-watchdog.git
 cd data-watchdog
 python -m venv venv
 source venv/bin/activate   # on Windows: venv\Scripts\activate
@@ -101,6 +101,7 @@ data-watchdog/
 ├── checks/            # registry + individual quality checks
 ├── static/            # dashboard UI
 ├── scripts/           # postgres seed SQL
+├── tests/             # pytest test suite
 ├── data/              # generated data (gitignored)
 └── requirements.txt
 ```

@@ -1,0 +1,13 @@
+.env
+.env.*
+*.db
+data/
+venv/
+__pycache__/
+.pytest_cache/
+.git/
+.github/
+*.md
+!requirements*.txt
+tests/
+scripts/ci_notify.py
