@@ -58,7 +58,7 @@ def get_source_status(source_name):
         ).fetchall()
         conn.close()
     except Exception:
-        return None
+        rows = []
 
     if not rows:
         return {
@@ -95,7 +95,11 @@ def get_source_status(source_name):
             "null_counts": json.loads(nulls),
         })
 
-    alerts = _registry.run_all(current, history_dicts)
+    try:
+        alerts = _registry.run_all(current, history_dicts)
+    except Exception as exc:
+        print(f"Checks failed for '{source_name}': {exc}")
+        alerts = []
 
     chart_data = [
         {"ts": r[0][11:16], "rows": r[1]}
@@ -140,18 +144,29 @@ def _no_cache(response):
 
 @app.route("/api/status")
 def status():
-    sources = []
-    for name in _source_names():
-        sources.append(get_source_status(name))
+    try:
+        sources = []
+        for name in _source_names():
+            result = get_source_status(name)
+            if result is not None:
+                sources.append(result)
 
-    overall_healthy = all(s["healthy"] for s in sources) if sources else True
-    total_alerts = sum(len(s["alerts"]) for s in sources)
+        overall_healthy = all(s["healthy"] for s in sources) if sources else True
+        total_alerts = sum(len(s["alerts"]) for s in sources)
 
-    return jsonify({
-        "healthy": overall_healthy,
-        "total_alerts": total_alerts,
-        "sources": sources,
-    })
+        return jsonify({
+            "healthy": overall_healthy,
+            "total_alerts": total_alerts,
+            "sources": sources,
+        })
+    except Exception as exc:
+        print(f"Status endpoint error: {exc}")
+        return jsonify({
+            "healthy": False,
+            "total_alerts": 0,
+            "sources": [],
+            "error": str(exc),
+        })
 
 
 @app.route("/api/source/<source_name>")
