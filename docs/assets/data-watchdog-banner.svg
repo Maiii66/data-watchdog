@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="400" viewBox="0 0 1600 400" role="img" aria-label="Data Watchdog - Intelligent Data Monitoring &amp; Protection">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080c14"/>
+      <stop offset="55%" stop-color="#0d1220"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00e5b0"/>
+      <stop offset="100%" stop-color="#4a9eff"/>
+    </linearGradient>
+    <linearGradient id="lineGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00e5b0" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00e5b0" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#00e5b0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2540" stroke-width="1" opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="400" fill="url(#bg)"/>
+  <rect width="1600" height="400" fill="url(#grid)"/>
+
+  <!-- subtle glow blobs -->
+  <circle cx="1380" cy="90" r="180" fill="#00e5b0" opacity="0.05"/>
+  <circle cx="1400" cy="330" r="140" fill="#4a9eff" opacity="0.05"/>
+
+  <!-- top accent line -->
+  <rect x="0" y="0" width="1600" height="3" fill="url(#teal)"/>
+
+  <!-- chart grid lines -->
+  <g stroke="#1a2540" stroke-width="1.5">
+    <line x1="60" y1="90" x2="1540" y2="90"/>
+    <line x1="60" y1="150" x2="1540" y2="150"/>
+    <line x1="60" y1="210" x2="1540" y2="210"/>
+    <line x1="60" y1="270" x2="1540" y2="270"/>
+  </g>
+
+  <!-- left label -->
+  <text x="34" y="185" font-family="IBM Plex Mono, monospace" font-size="12" fill="#4a6080" text-anchor="middle" transform="rotate(-90 34 185)">MONITOR</text>
+
+  <!-- pulse line (row count history motif) -->
+  <g>
+    <path id="pulse" d="M 60 270 L 210 270 L 250 205 L 300 250 L 340 120 L 390 220 L 440 150 L 490 235 L 540 90 L 590 200 L 640 175 L 700 235 L 760 135 L 820 210 L 880 165 L 930 225 L 985 100 L 1040 195 L 1090 150 L 1140 215 L 1190 180 L 1250 230 L 1310 160 L 1370 210 L 1540 210" fill="none" stroke="url(#teal)" stroke-width="3" filter="url(#glow)"/>
+    <path d="M 60 270 L 210 270 L 250 205 L 300 250 L 340 120 L 390 220 L 440 150 L 490 235 L 540 90 L 590 200 L 640 175 L 700 235 L 760 135 L 820 210 L 880 165 L 930 225 L 985 100 L 1040 195 L 1090 150 L 1140 215 L 1190 180 L 1250 230 L 1310 160 L 1370 210 L 1540 210 L 1540 400 L 60 400 Z" fill="url(#lineGlow)" opacity="0.6"/>
+    <circle cx="540" cy="90" r="6" fill="#00e5b0"/>
+    <circle cx="540" cy="90" r="14" fill="#00e5b0" opacity="0.25"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="80" y="120" font-family="Geist Mono, IBM Plex Mono, SFMono-Regular, Consolas, monospace" font-size="34" font-weight="700" letter-spacing="2" fill="#e2eaf8">
+    <tspan fill="#00e5b0">// </tspan>DATA WATCHDOG
+  </text>
+
+  <text x="82" y="156" font-family="Geist Mono, IBM Plex Mono, SFMono-Regular, Consolas, monospace" font-size="17" letter-spacing="6" fill="#4a6080">INTELLIGENT DATA MONITORING &amp; PROTECTION</text>
+
+  <!-- badges -->
+  <g font-family="Geist Mono, IBM Plex Mono, SFMono-Regular, Consolas, monospace" font-size="13" font-weight="600">
+    <rect x="80" y="300" width="120" height="30" rx="6" fill="#00e5b022" stroke="#00e5b044"/>
+    <text x="140" y="320" fill="#00e5b0" text-anchor="middle">python 3.11+</text>
+
+    <rect x="212" y="300" width="96" height="30" rx="6" fill="#0d1220" stroke="#1a2540"/>
+    <text x="260" y="320" fill="#4a9eff" text-anchor="middle">flask</text>
+
+    <rect x="320" y="300" width="110" height="30" rx="6" fill="#0d1220" stroke="#1a2540"/>
+    <text x="375" y="320" fill="#e2eaf8" text-anchor="middle">postgres</text>
+
+    <rect x="442" y="300" width="96" height="30" rx="6" fill="#0d1220" stroke="#1a2540"/>
+    <text x="490" y="320" fill="#e2eaf8" text-anchor="middle">sqlite</text>
+
+    <rect x="550" y="300" width="110" height="30" rx="6" fill="#0d1220" stroke="#1a2540"/>
+    <text x="605" y="320" fill="#e2eaf8" text-anchor="middle">docker</text>
+
+    <rect x="672" y="300" width="148" height="30" rx="6" fill="#0d1220" stroke="#1a2540"/>
+    <text x="746" y="320" fill="#00e5b0" text-anchor="middle">github actions</text>
+  </g>
+</svg>
